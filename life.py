@@ -51,13 +51,12 @@ def configHandling(filename: str = "config.ini", conf: list = []):
         with open(filename, 'w') as f:
             f.write(conf)
 
-def listLiveNeighbors(squareX: int, squareY: int) -> int:
+def listLiveNeighbors(x: int, y: int) -> int:
     alive = 0
-    for y in range(squareY - 1, squareY + 1):
-        for x in range(squareX - 1, squareX + 1):
-            if field[y][x]:
-                alive += 1
-    return alive
+    for offsetY in [-1, 0, 1]:
+        for offsetX in [-1, 0, 1]:
+            if field[offsetY + y][offsetX + x]: alive += 1
+    return alive - field[y][x]
 
 
 while True:
@@ -65,12 +64,19 @@ while True:
         if event.type == pygame.QUIT:
             pygame.quit()
             exit()
-        if event.type == pygame.MOUSEBUTTONDOWN:
-            if pygame.mouse.get_pressed() == (True, False, False):
-                # creating a new cell when the user clicks in the position of the mouse
-                mPos = pygame.mouse.get_pos()
-                createNewCell(pixelPos2relPos(mPos))
-                print(listLiveNeighbors(pixelPos2relPos(mPos)[0], pixelPos2relPos(mPos)[1]))
+        # creating a cell
+        if pygame.mouse.get_pressed() == (True, False, False):
+            # creating a new cell when the user clicks in the position of the mouse
+            mPos = pygame.mouse.get_pos()
+            createNewCell(pixelPos2relPos(mPos))
+            print(listLiveNeighbors(pixelPos2relPos(mPos)[0], pixelPos2relPos(mPos)[1]))
+
+        # deleting a cell
+        elif pygame.mouse.get_pressed() == (False, False, True):
+            # creating a new cell when the user clicks in the position of the mouse
+            mPos = pygame.mouse.get_pos()
+            createNewCell(pixelPos2relPos(mPos))
+
 
     # visual stuff
     screen.fill(pygame.Color("black"))
