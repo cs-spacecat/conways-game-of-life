@@ -5,13 +5,12 @@ from sys import exit
 fieldSize = 50
 cameraPos: tuple[int, int] = (0, 0)
 cellSize = 20 # size of one cell
-
 # 0: cell dead
 # 1: cell alive
 field = [[0 for _ in range(fieldSize)] for _ in range(fieldSize)]  # field grid
 
 pygame.init()
-#screen = pygame.display.set_mode((fieldSize * cellSize + 1 , fieldSize * cellSize + 1))
+screen = pygame.display.set_mode((fieldSize * cellSize + 1, fieldSize * cellSize + 1))
 screen = pygame.display.set_mode((1600, 900))
 pygame.display.set_caption("Conway's game of life")
 clock = pygame.time.Clock()
@@ -51,6 +50,7 @@ def drawField() -> None:
     for y, row in enumerate(field):
         for x, cell in enumerate(row):
             if cell:
+                pygame.draw.rect(screen, "gray", pygame.Rect(x * cellSize, y * cellSize, cellSize, cellSize))
                 currentPos = relPos2pixelPos((x, y))
                 pygame.draw.rect(screen, "gray", pygame.Rect(currentPos[0], currentPos[1], cellSize, cellSize))
 
@@ -77,12 +77,34 @@ def configHandling(filename: str = "config.ini", conf: list = []) -> Any:
         with open(filename, 'w') as f:
             f.write(conf)
 
-def listLiveNeighbors(x: int, y: int) -> int:
+def listNeighbors(x: int, y: int, tempfield) -> int:
     alive = 0
     for offsetY in [-1, 0, 1]:
         for offsetX in [-1, 0, 1]:
-            if field[offsetY + y][offsetX + x]: alive += 1
-    return alive - field[y][x]
+            try:
+                if tempfield[offsetY + y][offsetX + x]:
+                    alive += 1
+            except IndexError:
+                pass
+    return alive - tempfield[y][x]
+
+def handleCells(x: int, y: int, tempfield) -> None:
+    global field
+    neighbors = listNeighbors(x, y, tempfield)
+
+    if tempfield[y][x]:  # if cell is alive
+        if neighbors <= 1 or neighbors >= 4:
+            field[y][x] = 0
+    else:
+        if neighbors == 3:
+            field[y][x] = 1
+
+def apply_Cells() -> None:
+    tempfield = field[:]  # so that the new cells dont interfere w/ the old ones
+    for y, row in enumerate(tempfield):
+        for x, _ in enumerate(row):
+            handleCells(x, y, tempfield)
+
 
 def main() -> None:
     global cameraPos, cellSize
@@ -97,6 +119,7 @@ def main() -> None:
                 # creating a new cell when the user clicks in the position of the mouse
                 mPos = pygame.mouse.get_pos()
                 createNewCell(pixelPos2relPos(mPos), 1)
+
             # deleting a cell
             elif pygame.mouse.get_pressed() == (False, False, True):
                 # deleting cell when the user clicks in the position of the mouse
@@ -110,6 +133,10 @@ def main() -> None:
             if event.type == pygame.MOUSEWHEEL:
                 scrollDelta = event.y
                 zoom(scrollDelta)
+
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_SPACE:
+                    apply_Cells()
 
 
         # visual stuff
