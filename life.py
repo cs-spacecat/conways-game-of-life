@@ -1,19 +1,21 @@
 from typing import Literal, Any  # more typehints
 import pygame
 from sys import exit
+import copy
 
-fieldSize = 50
-cameraPos: tuple[int, int] = (0, 0)
-cellSize = 20 # size of one cell
-# 0: cell dead
-# 1: cell alive
+# sizes 
+fieldSize = 100 # 50
+cellSize = 40 # size of one cell
+screenSize = (1600, 900)
+cameraPos: tuple[int, int] = (-(fieldSize * cellSize - screenSize[0]) / 2, -(fieldSize * cellSize - screenSize[1]) / 2)
+# 0: dead cell,  1: alive cell 
 field = [[0 for _ in range(fieldSize)] for _ in range(fieldSize)]  # field grid
 # speed of panning (2 doubles the seed and 0.5 halfs the dafualt speed)
-panSpeed = 1
+panSpeed = 0.1
 
 pygame.init()
 # screen = pygame.display.set_mode((fieldSize * cellSize + 1, fieldSize * cellSize + 1))
-screen = pygame.display.set_mode((1600, 900))
+screen = pygame.display.set_mode(screenSize)
 pygame.display.set_caption("Conway's game of life")
 clock = pygame.time.Clock()
 
@@ -81,29 +83,31 @@ def listNeighbors(x: int, y: int, tempfield) -> int:
     alive = 0
     for offsetY in [-1, 0, 1]:
         for offsetX in [-1, 0, 1]:
-            try:
-                if tempfield[offsetY + y][offsetX + x]:
-                    alive += 1
-            except IndexError:
-                pass
+            if tempfield[y + offsetY][x + offsetX]:
+                alive += 1
     return alive - tempfield[y][x]
 
-def handleCells(x: int, y: int, tempfield) -> None:
+def handleCell(x: int, y: int, tempField) -> None:
     global field
-    neighbors = listNeighbors(x, y, tempfield)
+    # skippin the cell if its on the edge of the grid
+    if x == 0 or x == fieldSize - 1 or y == 0 or y == fieldSize - 1: return
 
-    if tempfield[y][x]:  # if cell is alive
+    neighbors = listNeighbors(x, y, tempField)
+
+    if tempField[y][x]:  # if cell is alive
         if neighbors <= 1 or neighbors >= 4:
             field[y][x] = 0
     else:
         if neighbors == 3:
             field[y][x] = 1
 
-def apply_Cells() -> None:
-    tempfield = field[:]  # so that the new cells dont interfere w/ the old ones
-    for y, row in enumerate(tempfield):
+# advances the field by one generation
+def advanceGeneration() -> None:
+    global field
+    tempField = copy.deepcopy(field)  # so that the new cells dont interfere w/ the old ones
+    for y, row in enumerate(tempField):
         for x, _ in enumerate(row):
-            handleCells(x, y, tempfield)
+            handleCell(x, y, tempField)
 
 
 def main() -> None:
@@ -119,7 +123,6 @@ def main() -> None:
                 # creating a new cell when the user clicks in the position of the mouse
                 mPos = pygame.mouse.get_pos()
                 createNewCell(pixelPos2relPos(mPos), 1)
-
             # deleting a cell
             elif pygame.mouse.get_pressed() == (False, False, True):
                 # deleting cell when the user clicks in the position of the mouse
@@ -129,7 +132,6 @@ def main() -> None:
             elif pygame.mouse.get_pressed() == (False, True, False):
                 # panning with the middle mouse button
                 cameraPos = (cameraPos[0] + panSpeed * delta[0], cameraPos[1] + panSpeed * delta[1]); 
-                print(delta)
             # zooming
             if event.type == pygame.MOUSEWHEEL:
                 scrollDelta = event.y
@@ -137,8 +139,7 @@ def main() -> None:
 
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_SPACE:
-                    apply_Cells()
-
+                    advanceGeneration()
 
         # visual stuff
         screen.fill(pygame.Color("black"))
