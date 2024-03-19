@@ -4,14 +4,14 @@ from sys import exit
 
 fieldSize = 50
 cameraPos = (0, 0)
-cellSize = 20 # size of one cell
+cellSize = 20  # size of one cell
 
 # 0: cell dead
 # 1: cell alive
 field = [[0 for _ in range(fieldSize)] for _ in range(fieldSize)]  # field grid
 
 pygame.init()
-screen = pygame.display.set_mode((fieldSize * cellSize + 1 , fieldSize * cellSize + 1))
+screen = pygame.display.set_mode((fieldSize * cellSize + 1, fieldSize * cellSize + 1))
 pygame.display.set_caption("Conway's game of life")
 clock = pygame.time.Clock()
 
@@ -29,7 +29,7 @@ def createNewCell(pos: list[int, int], state: Literal[1, 0]) -> None:
 def drawGrid() -> None:
     global cellSize, fieldSize
     endOfGrid = fieldSize * cellSize
-    for i in range(fieldSize + 1): 
+    for i in range(fieldSize + 1):
         pygame.draw.line(screen, "gray", (i * cellSize, 0), (i * cellSize, endOfGrid))
         pygame.draw.line(screen, "gray", (0, i * cellSize), (endOfGrid, i * cellSize))
 
@@ -37,7 +37,7 @@ def drawField() -> None:
     global cellSize, field
     for y, row in enumerate(field):
         for x, cell in enumerate(row):
-            if cell: 
+            if cell:
                 pygame.draw.rect(screen, "gray", pygame.Rect(x * cellSize, y * cellSize, cellSize, cellSize))
 
 def configHandling(filename: str = "config.ini", conf: list = []) -> Any:
@@ -53,12 +53,22 @@ def configHandling(filename: str = "config.ini", conf: list = []) -> Any:
         with open(filename, 'w') as f:
             f.write(conf)
 
-def listLiveNeighbors(x: int, y: int) -> int:
+def handleCells(x: int, y: int) -> None:
+    global field
+
+    # list all live neighbors
     alive = 0
     for offsetY in [-1, 0, 1]:
         for offsetX in [-1, 0, 1]:
-            if field[offsetY + y][offsetX + x]: alive += 1
-    return alive - field[y][x]
+            if field[offsetY + y][offsetX + x]:
+                alive += 1
+    neighbors = alive - field[y][x]
+
+    if field[y][x]:  # if cell is alive
+        if neighbors > 2 or neighbors < 3:
+            field[y][x] = 0
+    if field[y][x] and neighbors == 3:
+        field[y][x] = 1
 
 def main() -> None:
     while True:
@@ -77,7 +87,6 @@ def main() -> None:
                 # deleting cell when the user clicks in the position of the mouse
                 mPos = pygame.mouse.get_pos()
                 createNewCell(pixelPos2relPos(mPos), 0)
-
 
         # visual stuff
         screen.fill(pygame.Color("black"))
