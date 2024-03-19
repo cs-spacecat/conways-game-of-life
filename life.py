@@ -8,9 +8,11 @@ cellSize = 20 # size of one cell
 # 0: cell dead
 # 1: cell alive
 field = [[0 for _ in range(fieldSize)] for _ in range(fieldSize)]  # field grid
+# speed of panning (2 doubles the seed and 0.5 halfs the dafualt speed)
+panSpeed = 1
 
 pygame.init()
-screen = pygame.display.set_mode((fieldSize * cellSize + 1, fieldSize * cellSize + 1))
+# screen = pygame.display.set_mode((fieldSize * cellSize + 1, fieldSize * cellSize + 1))
 screen = pygame.display.set_mode((1600, 900))
 pygame.display.set_caption("Conway's game of life")
 clock = pygame.time.Clock()
@@ -25,7 +27,6 @@ def pixelPos2relPos(pos: tuple[int, int]) -> tuple[int, int]:
 def pixelPos2relPosEx(pos: tuple[int, int]) -> tuple[int, int]:
     global cellSize
     return ((pos[0] - cameraPos[0]) / cellSize, (pos[1] - cameraPos[1]) / cellSize)
-
 
 # returns the pixel posiiton on screen given a relative position in the grid 
 def relPos2pixelPos(pos: tuple[int, int]) -> tuple[int, int]:
@@ -50,7 +51,6 @@ def drawField() -> None:
     for y, row in enumerate(field):
         for x, cell in enumerate(row):
             if cell:
-                pygame.draw.rect(screen, "gray", pygame.Rect(x * cellSize, y * cellSize, cellSize, cellSize))
                 currentPos = relPos2pixelPos((x, y))
                 pygame.draw.rect(screen, "gray", pygame.Rect(currentPos[0], currentPos[1], cellSize, cellSize))
 
@@ -107,7 +107,7 @@ def apply_Cells() -> None:
 
 
 def main() -> None:
-    global cameraPos, cellSize
+    global cameraPos, cellSize, panSpeed
     while True:
         delta = pygame.mouse.get_rel() # needs to be calculatd every iteration in order to work
         for event in pygame.event.get():
@@ -128,7 +128,8 @@ def main() -> None:
             # panning
             elif pygame.mouse.get_pressed() == (False, True, False):
                 # panning with the middle mouse button
-                cameraPos = (cameraPos[0] + delta[0], cameraPos[1] + delta[1]); 
+                cameraPos = (cameraPos[0] + panSpeed * delta[0], cameraPos[1] + panSpeed * delta[1]); 
+                print(delta)
             # zooming
             if event.type == pygame.MOUSEWHEEL:
                 scrollDelta = event.y
