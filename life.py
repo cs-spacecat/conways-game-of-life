@@ -2,7 +2,7 @@ from typing import Literal, Any  # moar typehints
 import pygame
 from sys import exit
 
-fieldSize = 50
+fieldSize = 10
 cameraPos = (0, 0)
 cellSize = 20  # size of one cell
 
@@ -53,22 +53,34 @@ def configHandling(filename: str = "config.ini", conf: list = []) -> Any:
         with open(filename, 'w') as f:
             f.write(conf)
 
-def handleCells(x: int, y: int) -> None:
-    global field
-
-    # list all live neighbors
+def listNeighbors(x: int, y: int, tempfield) -> int:
     alive = 0
     for offsetY in [-1, 0, 1]:
         for offsetX in [-1, 0, 1]:
-            if field[offsetY + y][offsetX + x]:
-                alive += 1
-    neighbors = alive - field[y][x]
+            try:
+                if tempfield[offsetY + y][offsetX + x]:
+                    alive += 1
+            except IndexError:
+                pass
+    return alive - tempfield[y][x]
 
-    if field[y][x]:  # if cell is alive
-        if neighbors > 2 or neighbors < 3:
+def handleCells(x: int, y: int, tempfield) -> None:
+    global field
+    neighbors = listNeighbors(x, y, tempfield)
+
+    if tempfield[y][x]:  # if cell is alive
+        if neighbors <= 1 or neighbors >= 4:
             field[y][x] = 0
-    if field[y][x] and neighbors == 3:
-        field[y][x] = 1
+    else:
+        if neighbors == 3:
+            field[y][x] = 1
+
+def apply_Cells() -> None:
+    tempfield = field[:]  # so that the new cells dont interfere w/ the old ones
+    for y, row in enumerate(tempfield):
+        for x, _ in enumerate(row):
+            handleCells(x, y, tempfield)
+
 
 def main() -> None:
     while True:
@@ -81,12 +93,18 @@ def main() -> None:
                 # creating a new cell when the user clicks in the position of the mouse
                 mPos = pygame.mouse.get_pos()
                 createNewCell(pixelPos2relPos(mPos), 1)
+                print(listNeighbors(*pixelPos2relPos(mPos), field))
 
             # deleting a cell
             elif pygame.mouse.get_pressed() == (False, False, True):
                 # deleting cell when the user clicks in the position of the mouse
                 mPos = pygame.mouse.get_pos()
                 createNewCell(pixelPos2relPos(mPos), 0)
+
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_SPACE:
+                    apply_Cells()
+
 
         # visual stuff
         screen.fill(pygame.Color("black"))
