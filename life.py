@@ -12,7 +12,7 @@ panSpeed: float = 0.1  # speed of panning (2 doubles the seed and 0.5 halfs the 
 simulationSpeed: float = 0.2  # speed of the simulation (in seconds)
 # 0: dead cell,  1: alive cell
 field: list[list[int]] = [[0 for _ in range(fieldSize)] for _ in range(fieldSize)]  # field grid
-
+steps: int = 0
 pygame.init()
 # screen = pygame.display.set_mode((fieldSize * cellSize + 1, fieldSize * cellSize + 1))
 screen = pygame.display.set_mode(screenSize)
@@ -67,7 +67,7 @@ def zoom(scrollDelta: int) -> None:
         (newRelPos[1] - oldRelPos[1]) * cellSize + cameraPos[1])
 
 def configHandling(filename: str = "config.ini", conf: list = []) -> None:
-    global cameraPos, cellSize, panSpeed, field, screenSize, fieldSize, simulationSpeed, simulationSpeed
+    global steps, cameraPos, cellSize, panSpeed, field, screenSize, fieldSize, simulationSpeed, simulationSpeed
     if len(conf) == 0:
         try:
             with open(filename, 'r') as f:
@@ -78,8 +78,9 @@ def configHandling(filename: str = "config.ini", conf: list = []) -> None:
             field = config["field"]
             screenSize = config["screenSize"]
             fieldSize = config["fieldSize"]
+            steps = config["steps"]
         except FileNotFoundError:  # if no file is found, create one
-            configHandling(conf=json.dumps({"cameraPos": cameraPos, "panSpeed": panSpeed, "simulationSpeed": simulationSpeed, "cellSize": cellSize, "screenSize": screenSize, "fieldSize": fieldSize, "field": field}))
+            configHandling(conf=json.dumps({"steps": steps, "cameraPos": cameraPos, "panSpeed": panSpeed, "simulationSpeed": simulationSpeed, "cellSize": cellSize, "screenSize": screenSize, "fieldSize": fieldSize, "field": field}))
     else:
         open(filename, 'w').close()  # empty file; redundant
         with open(filename, 'w') as f:
@@ -93,9 +94,17 @@ def listNeighbors(x: int, y: int, tempfield) -> int:
                 alive += 1
     return alive - tempfield[y][x]
 
+def display_steps():
+    # font = pygame.font.Font("freesansbold", 45)
+    font = pygame.font.Font(pygame.font.get_default_font(), 30)
+    text = font.render(f"Schritte: {steps}", True, "white")
+    rect = text.get_rect(topleft=(10, 10))
+    screen.blit(text, rect)
+
+
 # advances the field by one generation
 def advanceGeneration() -> None:
-    global field
+    global field, steps
     tempField = copy.deepcopy(field)  # so that the new cells dont interfere w/ the old ones
     for y, row in enumerate(tempField):
         for x, _ in enumerate(row):
@@ -112,6 +121,8 @@ def advanceGeneration() -> None:
             else:
                 if neighbors == 3:
                     field[y][x] = 1
+    steps += 1
+    print(steps)
 
 
 def main() -> None:
@@ -126,7 +137,7 @@ def main() -> None:
             sleep(simulationSpeed)
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
-                configHandling(conf={"cameraPos": cameraPos, "panSpeed": panSpeed, "simulationSpeed": simulationSpeed, "cellSize": cellSize, "screenSize": screenSize, "fieldSize": fieldSize, "field": field})
+                configHandling(conf={"steps": steps, "cameraPos": cameraPos, "panSpeed": panSpeed, "simulationSpeed": simulationSpeed, "cellSize": cellSize, "screenSize": screenSize, "fieldSize": fieldSize, "field": field})
                 pygame.quit()
                 exit()
             # creating a cell
@@ -162,6 +173,8 @@ def main() -> None:
         screen.fill(pygame.Color("black"))
         drawGrid()
         drawField()
+        display_steps()
+
         pygame.display.update()
         clock.tick(60)
 
