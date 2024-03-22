@@ -98,10 +98,12 @@ def listNeighbors(x: int, y: int, tempfield) -> int:
     return alive - tempfield[y][x]
 
 def display_steps():
-    # font = pygame.font.Font("freesansbold", 45)
     font = pygame.font.Font(pygame.font.get_default_font(), 30)
     text = font.render(f"Schritte: {steps}", True, "white")
     rect = text.get_rect(topleft=(10, 10))
+    bg = pygame.Surface(text.get_size())
+    bg.fill((0, 0, 0))
+    screen.blit(bg, rect)
     screen.blit(text, rect)
 
 
@@ -125,7 +127,6 @@ def advanceGeneration() -> None:
                 if neighbors == 3:
                     field[y][x] = 1
     steps += 1
-    print(steps)
 
 
 def main() -> None:
