@@ -58,13 +58,16 @@ def drawField() -> None:
 
 def zoom(scrollDelta: int) -> None:
     global cellSize, cameraPos
+    # limiting the zoom
+    if scrollDelta * 2 + cellSize <= 0 or scrollDelta * 2 + cellSize >= 200: return 
     mPos = pygame.mouse.get_pos()
     oldRelPos = pixelPos2relPosEx(mPos)
     cellSize += scrollDelta * 2
     newRelPos = pixelPos2relPosEx(mPos)
     cameraPos = (
         (newRelPos[0] - oldRelPos[0]) * cellSize + cameraPos[0],
-        (newRelPos[1] - oldRelPos[1]) * cellSize + cameraPos[1])
+        (newRelPos[1] - oldRelPos[1]) * cellSize + cameraPos[1]
+    )
 
 def configHandling(filename: str = "config.ini", conf: list = []) -> None:
     global cameraPos, cellSize, panSpeed, field, screenSize, fieldSize, simulationSpeed, simulationSpeed
