@@ -1,17 +1,17 @@
-from typing import Literal, Any  # more typehints
-import pygame
+from typing import Literal  # more typehints
+import pygame, copy, json
 from sys import exit
-import copy
+from time import sleep
 
-# sizes 
-fieldSize = 100 # 50
-cellSize = 40 # size of one cell
-screenSize = (1600, 900)
-cameraPos: tuple[int, int] = (-(fieldSize * cellSize - screenSize[0]) / 2, -(fieldSize * cellSize - screenSize[1]) / 2)
-# 0: dead cell,  1: alive cell 
-field = [[0 for _ in range(fieldSize)] for _ in range(fieldSize)]  # field grid
-# speed of panning (2 doubles the seed and 0.5 halfs the dafualt speed)
-panSpeed = 0.1
+# sizes
+fieldSize: int = 100
+cellSize: int = 40  # size of one cell
+screenSize: tuple[int, int] = (1600, 900)
+cameraPos: tuple[int, int] = (- (fieldSize * cellSize - screenSize[0]) / 2, - (fieldSize * cellSize - screenSize[1]) / 2)
+panSpeed: float = 0.1  # speed of panning (2 doubles the seed and 0.5 halfs the dafualt speed)
+simulationSpeed: float = 0.2  # speed of the simulation (in seconds)
+# 0: dead cell,  1: alive cell
+field: list[list[int]] = [[0 for _ in range(fieldSize)] for _ in range(fieldSize)]  # field grid
 
 pygame.init()
 # screen = pygame.display.set_mode((fieldSize * cellSize + 1, fieldSize * cellSize + 1))
@@ -30,7 +30,7 @@ def pixelPos2relPosEx(pos: tuple[int, int]) -> tuple[int, int]:
     global cellSize
     return ((pos[0] - cameraPos[0]) / cellSize, (pos[1] - cameraPos[1]) / cellSize)
 
-# returns the pixel posiiton on screen given a relative position in the grid 
+# returns the pixel posiiton on screen given a relative position in the grid
 def relPos2pixelPos(pos: tuple[int, int]) -> tuple[int, int]:
     global cellSize
     return ((pos[0] * cellSize) + cameraPos[0], (pos[1] * cellSize) + cameraPos[1])
@@ -44,7 +44,7 @@ def createNewCell(pos: list[int, int], state: Literal[1, 0]) -> None:
 def drawGrid() -> None:
     global cellSize, fieldSize
     endOfGrid = fieldSize * cellSize
-    for i in range(fieldSize + 1): 
+    for i in range(fieldSize + 1):
         pygame.draw.line(screen, "gray", (i * cellSize + cameraPos[0], cameraPos[1]), (i * cellSize + cameraPos[0], endOfGrid + cameraPos[1]))
         pygame.draw.line(screen, "gray", (cameraPos[0], i * cellSize + cameraPos[1]), (endOfGrid + cameraPos[0], i * cellSize + cameraPos[1]))
 
@@ -66,18 +66,24 @@ def zoom(scrollDelta: int) -> None:
         (newRelPos[0] - oldRelPos[0]) * cellSize + cameraPos[0],
         (newRelPos[1] - oldRelPos[1]) * cellSize + cameraPos[1])
 
-def configHandling(filename: str = "config.ini", conf: list = []) -> Any:
-    global config
+def configHandling(filename: str = "config.ini", conf: list = []) -> None:
+    global cameraPos, cellSize, panSpeed, field, screenSize, fieldSize, simulationSpeed, simulationSpeed
     if len(conf) == 0:
         try:
             with open(filename, 'r') as f:
-                config = f.read()
+                config = json.loads(f.read())
+            cameraPos = config["cameraPos"]
+            cellSize = config["cellSize"]
+            panSpeed = config["panSpeed"]
+            field = config["field"]
+            screenSize = config["screenSize"]
+            fieldSize = config["fieldSize"]
         except FileNotFoundError:  # if no file is found, create one
-            configHandling(conf=[])
+            configHandling(conf=json.dumps({"cameraPos": cameraPos, "panSpeed": panSpeed, "simulationSpeed": simulationSpeed, "cellSize": cellSize, "screenSize": screenSize, "fieldSize": fieldSize, "field": field}))
     else:
-        open(filename, 'w').close()  #* empty file; redundant
+        open(filename, 'w').close()  # empty file; redundant
         with open(filename, 'w') as f:
-            f.write(conf)
+            f.write(json.dumps(conf))
 
 def listNeighbors(x: int, y: int, tempfield) -> int:
     alive = 0
@@ -87,35 +93,40 @@ def listNeighbors(x: int, y: int, tempfield) -> int:
                 alive += 1
     return alive - tempfield[y][x]
 
-def handleCell(x: int, y: int, tempField) -> None:
-    global field
-    # skippin the cell if its on the edge of the grid
-    if x == 0 or x == fieldSize - 1 or y == 0 or y == fieldSize - 1: return
-
-    neighbors = listNeighbors(x, y, tempField)
-
-    if tempField[y][x]:  # if cell is alive
-        if neighbors <= 1 or neighbors >= 4:
-            field[y][x] = 0
-    else:
-        if neighbors == 3:
-            field[y][x] = 1
-
 # advances the field by one generation
 def advanceGeneration() -> None:
     global field
     tempField = copy.deepcopy(field)  # so that the new cells dont interfere w/ the old ones
     for y, row in enumerate(tempField):
         for x, _ in enumerate(row):
-            handleCell(x, y, tempField)
+
+            # skippin the cell if its on the edge of the grid
+            if x == 0 or x == fieldSize - 1 or y == 0 or y == fieldSize - 1:
+                continue
+
+            neighbors = listNeighbors(x, y, tempField)
+
+            if tempField[y][x]:  # if cell is alive
+                if neighbors <= 1 or neighbors >= 4:
+                    field[y][x] = 0
+            else:
+                if neighbors == 3:
+                    field[y][x] = 1
 
 
 def main() -> None:
     global cameraPos, cellSize, panSpeed
+    configHandling()
+    newgen = False
+
     while True:
-        delta = pygame.mouse.get_rel() # needs to be calculatd every iteration in order to work
+        delta = pygame.mouse.get_rel()  # needs to be calculatd every iteration in order to work
+        if newgen:
+            advanceGeneration()
+            sleep(simulationSpeed)
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
+                configHandling(conf={"cameraPos": cameraPos, "panSpeed": panSpeed, "simulationSpeed": simulationSpeed, "cellSize": cellSize, "screenSize": screenSize, "fieldSize": fieldSize, "field": field})
                 pygame.quit()
                 exit()
             # creating a cell
@@ -131,7 +142,7 @@ def main() -> None:
             # panning
             elif pygame.mouse.get_pressed() == (False, True, False):
                 # panning with the middle mouse button
-                cameraPos = (cameraPos[0] + panSpeed * delta[0], cameraPos[1] + panSpeed * delta[1]); 
+                cameraPos = (cameraPos[0] + panSpeed * delta[0], cameraPos[1] + panSpeed * delta[1])
             # zooming
             if event.type == pygame.MOUSEWHEEL:
                 scrollDelta = event.y
@@ -140,6 +151,12 @@ def main() -> None:
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_SPACE:
                     advanceGeneration()
+                if event.key == pygame.K_RETURN:
+                    newgen = True
+
+            if event.type == pygame.KEYUP:
+                if event.key == pygame.K_RETURN:
+                    newgen = False
 
         # visual stuff
         screen.fill(pygame.Color("black"))
