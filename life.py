@@ -2,6 +2,7 @@ from typing import Literal  # more typehints
 import pygame, copy, json
 from sys import exit
 from time import sleep
+from time import time as t
 
 # Values
 fieldSize: int = 100
@@ -153,6 +154,7 @@ def main() -> None:
                     advanceGeneration()
                 elif event.key == pygame.K_RETURN:
                     newgen = not newgen
+                    t1 = t()
                 elif event.key == pygame.K_LCTRL:
                     shouldDrawGrid = not shouldDrawGrid
 
@@ -160,8 +162,9 @@ def main() -> None:
         screen.fill(pygame.Color("black"))
 
         if newgen:
-            advanceGeneration()
-            sleep(simulationSpeed)
+            if t() - t1 > simulationSpeed:
+                advanceGeneration()
+                t1 = t()
         if shouldDrawGrid:
             drawGrid()
         drawField()
