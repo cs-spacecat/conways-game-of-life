@@ -7,7 +7,7 @@ from time import time as getTime
 fieldSize: int = 100
 cellSize: int = 40  # size of one cell
 screenSize: tuple[int, int] = (1600, 900)
-cameraPos: tuple[int, int] = (- (fieldSize * cellSize - screenSize[0]) / 2, - (fieldSize * cellSize - screenSize[1]) / 2)
+cameraPos: tuple[int, int] = (-(fieldSize * cellSize - screenSize[0]) / 2, - (fieldSize * cellSize - screenSize[1]) / 2)
 panSpeed: float = 0.1  # speed of panning (2 doubles the seed and 0.5 halfs the default speed)
 genSpeed: int = 5 # speed of the simulation from 1 to 10 (1 being the slowest and 10 as fast as possible)
 
@@ -79,7 +79,7 @@ def configHandling(filename: str = "config.ini", conf: list = []) -> None:
             fieldSize = config["fieldSize"]
             steps = config["steps"]
         except FileNotFoundError:  # if no file is found, create one
-            configHandling(conf=json.dumps({"steps": steps, "cameraPos": cameraPos, "panSpeed": panSpeed, "simulationSpeed": simulationSpeed, "cellSize": cellSize, "screenSize": screenSize, "fieldSize": fieldSize, "field": field}))
+            configHandling(conf=json.dumps({"steps": steps, "cameraPos": cameraPos, "panSpeed": panSpeed, "genSpeed": genSpeed, "cellSize": cellSize, "screenSize": screenSize, "fieldSize": fieldSize, "field": field}))
     else:
         open(filename, 'w').close()  # empty file; redundant
         with open(filename, 'w') as f:
@@ -93,17 +93,16 @@ def listNeighbors(x: int, y: int, tempfield) -> int:
                 alive += 1
     return alive - tempfield[y][x]
 
-def displayGenSpeed():
+def displayUI():
     font = pygame.font.Font(pygame.font.get_default_font(), 30)
+    # displaying the genSpeed
     text = font.render(f"genSpeed: {genSpeed}", True, "white")
     rect = text.get_rect(topright=(1590, 10))
     bg = pygame.Surface(text.get_size())
     bg.fill((0, 0, 0))
     screen.blit(bg, rect)
     screen.blit(text, rect)
-
-def display_steps():
-    font = pygame.font.Font(pygame.font.get_default_font(), 30)
+    # displaying the amount of steps
     text = font.render(f"steps: {steps}", True, "white")
     rect = text.get_rect(topleft=(10, 10))
     bg = pygame.Surface(text.get_size())
@@ -131,7 +130,7 @@ def advanceGeneration() -> None:  # advances the field by one generation
     steps += 1
 
 def main() -> None:
-    global cameraPos, cellSize, panSpeed
+    global cameraPos, cellSize, panSpeed, genSpeed
     configHandling()
     shouldAdvanceCon = False # should advance generatios continously
     shouldDrawGrid = True
@@ -165,6 +164,10 @@ def main() -> None:
                     t1 = getTime()
                 elif event.key == pygame.K_LCTRL:
                     shouldDrawGrid = not shouldDrawGrid
+                elif event.key == pygame.K_RIGHT or event.key == pygame.K_UP:
+                    genSpeed = genSpeed + 1 if genSpeed != 10 else 1
+                elif event.key == pygame.K_LEFT or event.key == pygame.K_DOWN:
+                    genSpeed = genSpeed - 1 if genSpeed != 1 else 10
 
         # visual stuff
         screen.fill(pygame.Color("black"))
@@ -176,8 +179,7 @@ def main() -> None:
         if shouldDrawGrid:
             drawGrid()
         drawField()
-        display_steps()
-        displayGenSpeed()
+        displayUI()
 
         pygame.display.update()
         clock.tick(60)
