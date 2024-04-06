@@ -1,16 +1,15 @@
 from typing import Literal  # more typehints
 import pygame, copy, json
 from sys import exit
-from time import sleep
-from time import time as t
+from time import time as getTime 
 
 # Values
 fieldSize: int = 100
 cellSize: int = 40  # size of one cell
 screenSize: tuple[int, int] = (1600, 900)
 cameraPos: tuple[int, int] = (- (fieldSize * cellSize - screenSize[0]) / 2, - (fieldSize * cellSize - screenSize[1]) / 2)
-panSpeed: float = 0.1  # speed of panning (2 doubles the seed and 0.5 halfs the dafualt speed)
-simulationSpeed: float = 0.3  # speed of the simulation (in seconds)
+panSpeed: float = 0.1  # speed of panning (2 doubles the seed and 0.5 halfs the default speed)
+genSpeed: int = 5 # speed of the simulation from 1 to 10 (1 being the slowest and 10 as fast as possible)
 
 # 0: dead cell,  1: alive cell
 field: list[list[int]] = [[0 for _ in range(fieldSize)] for _ in range(fieldSize)]  # field grid
@@ -94,9 +93,18 @@ def listNeighbors(x: int, y: int, tempfield) -> int:
                 alive += 1
     return alive - tempfield[y][x]
 
+def displayGenSpeed():
+    font = pygame.font.Font(pygame.font.get_default_font(), 30)
+    text = font.render(f"genSpeed: {genSpeed}", True, "white")
+    rect = text.get_rect(topright=(1590, 10))
+    bg = pygame.Surface(text.get_size())
+    bg.fill((0, 0, 0))
+    screen.blit(bg, rect)
+    screen.blit(text, rect)
+
 def display_steps():
     font = pygame.font.Font(pygame.font.get_default_font(), 30)
-    text = font.render(f"Schritte: {steps}", True, "white")
+    text = font.render(f"steps: {steps}", True, "white")
     rect = text.get_rect(topleft=(10, 10))
     bg = pygame.Surface(text.get_size())
     bg.fill((0, 0, 0))
@@ -125,7 +133,7 @@ def advanceGeneration() -> None:  # advances the field by one generation
 def main() -> None:
     global cameraPos, cellSize, panSpeed
     configHandling()
-    newgen = False
+    shouldAdvanceCon = False # should advance generatios continously
     shouldDrawGrid = True
 
     while True:
@@ -133,7 +141,7 @@ def main() -> None:
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
-                configHandling(conf={"steps": steps, "cameraPos": cameraPos, "panSpeed": panSpeed, "simulationSpeed": simulationSpeed, "cellSize": cellSize, "screenSize": screenSize, "fieldSize": fieldSize, "field": field})
+                configHandling(conf={"steps": steps, "cameraPos": cameraPos, "panSpeed": panSpeed, "genSpeed": genSpeed, "cellSize": cellSize, "screenSize": screenSize, "fieldSize": fieldSize, "field": field})
                 pygame.quit()
                 exit()
             # creating a cell
@@ -153,22 +161,23 @@ def main() -> None:
                 if event.key == pygame.K_SPACE:
                     advanceGeneration()
                 elif event.key == pygame.K_RETURN:
-                    newgen = not newgen
-                    t1 = t()
+                    shouldAdvanceCon = not shouldAdvanceCon
+                    t1 = getTime()
                 elif event.key == pygame.K_LCTRL:
                     shouldDrawGrid = not shouldDrawGrid
 
         # visual stuff
         screen.fill(pygame.Color("black"))
 
-        if newgen:
-            if t() - t1 > simulationSpeed:
+        if shouldAdvanceCon:
+            if getTime() - t1 > (10 - genSpeed) * 0.1:
                 advanceGeneration()
-                t1 = t()
+                t1 = getTime()
         if shouldDrawGrid:
             drawGrid()
         drawField()
         display_steps()
+        displayGenSpeed()
 
         pygame.display.update()
         clock.tick(60)
