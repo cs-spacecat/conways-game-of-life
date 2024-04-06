@@ -130,7 +130,7 @@ def advanceGeneration() -> None:  # advances the field by one generation
     steps += 1
 
 def main() -> None:
-    global cameraPos, cellSize, panSpeed, genSpeed
+    global cameraPos, cellSize, panSpeed, genSpeed, field
     configHandling()
     shouldAdvanceCon = False # should advance generatios continously
     shouldDrawGrid = True
@@ -168,6 +168,9 @@ def main() -> None:
                     genSpeed = genSpeed + 1 if genSpeed != 10 else 1
                 elif event.key == pygame.K_LEFT or event.key == pygame.K_DOWN:
                     genSpeed = genSpeed - 1 if genSpeed != 1 else 10
+                elif event.key == pygame.K_c:
+                    field = [[0 for _ in range(fieldSize)] for _ in range(fieldSize)]
+
 
         # visual stuff
         screen.fill(pygame.Color("black"))
